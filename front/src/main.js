@@ -11,7 +11,7 @@ const jobInput = document.querySelector(".job-input");
 
 let dataTable = [
   { id: 1, name: "Koto", job: "manager" },
-  { id: 2, name: "rasoa", job: "dev" },
+  { id: 2, name: "rasoa", job: "designer" },
 ];
 let compteur = 3;
 
@@ -79,15 +79,36 @@ function insertData(name, job, id) {
 }
 function renderData() {
   tbody.innerHTML = "";
-  for (let indexData of dataTable) {
-    insertData(indexData.name, indexData.job, indexData.id);
-  }
+  fetch("http://localhost:3000/person")
+    .then((res) => res.json())
+    .then((data) => {
+      for (let indexData of data) {
+        insertData(indexData.name, indexData.job, indexData.id);
+      }
+      dataTable = data;
+      compteur = data.length + 1;
+    });
 }
 renderData();
 
 /*---ADD_DATA---*/
 btnCreate.addEventListener("click", () => {
   modal.style.display = "none";
+  fetch("http://localhost:3000/person", {
+    method: "POST",
+    body: JSON.stringify({
+      id: compteur,
+      name: nameInput.value,
+      job: jobInput.value,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8",
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log(data);
+    });
   insertData(nameInput.value, jobInput.value, compteur);
   dataTable.push({ name: nameInput.value, job: jobInput.value, id: compteur });
   compteur++;
@@ -99,11 +120,18 @@ btnCreate.addEventListener("click", () => {
 function removeData(id) {
   document.querySelector("#" + "rmv" + id).addEventListener("click", () => {
     document.querySelector("." + "tr-" + id).remove();
-    dataTable = effacer(id);
+    dataTable = deleteData(id);
+    fetch(`http://localhost:3000/person/${id}`, {
+      method: "DELETE",  
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+      });
   });
 }
 
-function effacer(idVal) {
+function deleteData(idVal) {
   let tab = [];
   for (let index of dataTable) {
     if (index.id !== idVal) {
@@ -114,7 +142,7 @@ function effacer(idVal) {
 }
 
 /*---edite----*/
-let currentId = 0
+let currentId = 0;
 function editeTable(id) {
   document.querySelector("." + "e-" + id).addEventListener("click", () => {
     showModal();
@@ -126,17 +154,33 @@ function editeTable(id) {
         jobInput.value = indexDataTab.job;
       }
     }
-    currentId = id
+    currentId = id;
   });
 }
 
 btnUptdate.addEventListener("click", () => {
-  for (let index of dataTable) {
-    if (index.id == currentId) {
-      index.name = nameInput.value;
-      index.job = jobInput.value;
-    }
-  }
-  closeModal();
-  renderData();
+  fetch(`http://localhost:3000/person/${currentId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: nameInput.value,
+      job: jobInput.value,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8",
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log(data);
+      for (let index of dataTable) {
+        if (index.id == currentId) {
+          index.name = nameInput.value;
+          index.job = jobInput.value;
+        }
+      }
+      nameInput.value = "";
+      jobInput.value = "";
+      closeModal();
+      renderData();
+    });
 });
